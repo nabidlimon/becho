@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/lib/config";
+import { db } from "@/lib/db";
+import { encryptToken } from "@/lib/security";
+import { createSessionToken, setSessionCookie, getSession } from "@/lib/auth/session";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -7,8 +10,9 @@ export const revalidate = 0;
 /**
  * GET /api/auth/facebook/callback
  * Handles OAuth code exchange with Meta Graph API, upgrades to a long-lived user token,
- * fetches all connected Facebook Pages with permanent Page Access Tokens, and returns
- * the result to the opener window or redirects to the onboarding wizard.
+ * fetches all connected Facebook Pages with permanent Page Access Tokens, establishes
+ * a persistent user session, saves the credentials to the database vault, and auto-subscribes
+ * the pages to Meta Webhook events for 24/7 background AI operations.
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -71,7 +75,49 @@ export async function GET(req: NextRequest) {
     const longLivedData = await longLivedRes.json();
     const longLivedUserToken = longLivedData.access_token || shortLivedUserToken;
 
-    // 3. Fetch user's managed Facebook Pages with permanent Page Access Tokens
+    // 3. Fetch user profile from Facebook
+    let fbUser: any = { name: "Facebook Merchant" };
+    try {
+      const meRes = await fetch(
+        `${config.meta.graphBaseUrl}/${config.meta.apiVersion}/me?fields=id,name,email,picture{url}&access_token=${longLivedUserToken}`
+      );
+      if (meRes.ok) {
+        fbUser = await meRes.json();
+      }
+    } catch (e) {
+      console.warn("Could not fetch user /me profile:", e);
+    }
+
+    // 4. Resolve or create persistent User Account
+    const existingSession = await getSession(req);
+    let userId = existingSession?.userId;
+    let sessionToken: string | undefined;
+
+    if (!userId) {
+      const email = fbUser.email || `fb_${fbUser.id || Date.now()}@nanolez.tech`;
+      let user = db.getUserByEmail(email);
+      if (!user) {
+        user = db.saveUser({
+          id: "usr-" + (fbUser.id || Date.now()),
+          name: fbUser.name || "Facebook Merchant",
+          email,
+          avatarUrl: fbUser.picture?.data?.url || "https://mbot.nanolez.tech/logo.svg",
+          facebookUserId: fbUser.id,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        });
+      }
+      userId = user.id;
+
+      sessionToken = await createSessionToken({
+        userId: user.id,
+        email: user.email,
+        name: user.name,
+        avatarUrl: user.avatarUrl,
+      });
+    }
+
+    // 5. Fetch user's managed Facebook Pages with permanent Page Access Tokens
     const pagesUrl = `${config.meta.graphBaseUrl}/${config.meta.apiVersion}/me/accounts?` +
       new URLSearchParams({
         fields: "id,name,access_token,category,picture{url}",
@@ -87,18 +133,49 @@ export async function GET(req: NextRequest) {
 
     const rawPages = Array.isArray(pagesData.data) ? pagesData.data : [];
 
-    const pages = rawPages.map((p: any) => ({
-      id: p.id,
-      name: p.name,
-      category: p.category || "Business",
-      avatarUrl: p.picture?.data?.url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop",
-      pageAccessToken: p.access_token, // Permanent page access token
-    }));
+    // 6. Save pages to DB & auto-subscribe to webhooks for 24/7 background AI operations
+    const pages = rawPages.map((p: any) => {
+      const encryptedToken = encryptToken(p.access_token);
+      
+      const saved = db.savePage({
+        id: "page-" + p.id,
+        userId,
+        pageId: p.id,
+        pageName: p.name,
+        pageAvatarUrl: p.picture?.data?.url || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&h=200&fit=crop",
+        pageAccessToken: encryptedToken,
+        verifyToken: config.meta.verifyToken,
+        isActive: true, // 24/7 background bot enabled
+        personaTemplate: "gadgets",
+        insideCityDeliveryFee: 70,
+        outsideCityDeliveryFee: 130,
+        currency: "BDT",
+        allowDiscount: true,
+        maxDiscountPercent: 5,
+        codEnabled: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      });
+
+      // Explicitly subscribe this page to webhook events so Meta forwards all incoming messages
+      fetch(
+        `https://graph.facebook.com/v20.0/${p.id}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${p.access_token}`,
+        { method: "POST" }
+      ).catch((err) => console.warn(`[Auto-Subscribe] Error subscribing ${p.name} (${p.id}):`, err));
+
+      return {
+        id: p.id,
+        name: p.name,
+        category: p.category || "Business",
+        avatarUrl: p.picture?.data?.url,
+        pageAccessToken: p.access_token,
+      };
+    });
 
     return renderHtmlResponse({
       success: true,
       pages,
-    });
+    }, sessionToken);
   } catch (err: any) {
     console.error("Facebook OAuth callback error:", err);
     return renderHtmlResponse({
@@ -109,7 +186,10 @@ export async function GET(req: NextRequest) {
   }
 }
 
-function renderHtmlResponse(data: { success: boolean; error?: string; pages: any[] }) {
+function renderHtmlResponse(
+  data: { success: boolean; error?: string; pages: any[] },
+  sessionToken?: string
+) {
   const safeData = JSON.stringify(data);
 
   const html = `<!DOCTYPE html>
@@ -186,10 +266,16 @@ function renderHtmlResponse(data: { success: boolean; error?: string; pages: any
 </body>
 </html>`;
 
-  return new NextResponse(html, {
+  const response = new NextResponse(html, {
     status: 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
     },
   });
+
+  if (sessionToken) {
+    setSessionCookie(response, sessionToken);
+  }
+
+  return response;
 }

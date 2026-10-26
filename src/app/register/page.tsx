@@ -1,0 +1,182 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { Bot, Lock, Mail, User, ArrowRight, AlertCircle, Sparkles } from "lucide-react";
+
+export default function RegisterPage() {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters.");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const res = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to create account.");
+      }
+
+      router.push("/onboarding");
+      router.refresh();
+    } catch (err: any) {
+      setError(err?.message || "Failed to register.");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleFacebookConnect = () => {
+    window.location.href = "/api/auth/facebook";
+  };
+
+  return (
+    <div className="min-h-screen bg-[#070b14] text-slate-100 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-indigo-600/15 rounded-full blur-[140px] pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-[400px] h-[400px] bg-pink-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+      <div className="w-full max-w-md relative z-10">
+        {/* Brand Header */}
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-flex items-center gap-3 group">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-pink-500 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
+              <Bot className="w-7 h-7 text-white" />
+            </div>
+            <span className="text-2xl font-black tracking-tight text-white">
+              Becho<span className="text-indigo-400">.ai</span>
+            </span>
+          </Link>
+          <h1 className="text-2xl font-bold mt-4 tracking-tight">Create Merchant Account</h1>
+          <p className="text-sm text-slate-400 mt-1">
+            Automate sales on Facebook Messenger with AI
+          </p>
+        </div>
+
+        {/* Card */}
+        <div className="glass-card rounded-3xl p-8 border border-white/10 shadow-2xl backdrop-blur-xl">
+          {/* Quick Facebook Connect */}
+          <button
+            onClick={handleFacebookConnect}
+            type="button"
+            className="w-full flex items-center justify-center gap-3 py-3.5 px-4 bg-[#1877F2] hover:bg-[#166fe5] text-white font-semibold rounded-2xl shadow-lg shadow-blue-500/20 transition-all hover:scale-[1.01] active:scale-[0.99]"
+          >
+            <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+            <span>Register with Facebook</span>
+          </button>
+
+          <div className="flex items-center my-6">
+            <div className="flex-1 border-t border-slate-700/60" />
+            <span className="px-3 text-xs uppercase tracking-wider text-slate-500 font-semibold">
+              or register with email
+            </span>
+            <div className="flex-1 border-t border-slate-700/60" />
+          </div>
+
+          {error && (
+            <div className="mb-5 p-3.5 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Full Name / Business Name
+              </label>
+              <div className="relative">
+                <User className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="NanoLez Tech"
+                  className="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="email"
+                  required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="contact@nanolez.tech"
+                  className="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Password (min. 6 characters)
+              </label>
+              <div className="relative">
+                <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-slate-900/60 border border-slate-700/60 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full mt-2 py-3 px-4 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-semibold rounded-xl shadow-lg shadow-indigo-500/25 transition-all hover:scale-[1.01] active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-60"
+            >
+              {isLoading ? (
+                <span>Creating Account...</span>
+              ) : (
+                <>
+                  <span>Create Account & Start</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
+            </button>
+          </form>
+
+          <div className="mt-6 pt-5 border-t border-slate-800 text-center text-xs text-slate-400">
+            <span>Already have an account? </span>
+            <Link href="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold underline underline-offset-4">
+              Sign in
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

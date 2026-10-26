@@ -3,13 +3,17 @@ import { db } from "@/lib/db";
 import { config } from "@/lib/config";
 import { encryptToken } from "@/lib/security";
 
-export async function GET() {
-  const pages = db.getPages();
+import { getSession } from "@/lib/auth/session";
+
+export async function GET(req: NextRequest) {
+  const session = await getSession(req);
+  const pages = db.getPages(session?.userId);
   return NextResponse.json({ pages });
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession(req);
     const body = await req.json();
     const {
       pageId,
@@ -61,13 +65,14 @@ export async function POST(req: NextRequest) {
 
     const savedPage = db.savePage({
       id: "page-" + Date.now(),
+      userId: session?.userId,
       pageId: finalPageId,
       pageName: finalPageName,
       pageAvatarUrl: finalAvatarUrl,
       pageAccessToken: encryptToken(pageAccessToken),
       verifyToken,
       appSecret,
-      isActive: true,
+      isActive: true, // Activated 24/7 in the background
       personaTemplate,
       customSystemPrompt,
       insideCityDeliveryFee: Number(insideCityDeliveryFee),
@@ -79,6 +84,14 @@ export async function POST(req: NextRequest) {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     });
+
+    // Auto-subscribe page to webhook so bot is permanently active in background
+    if (!pageAccessToken.includes("demo_token")) {
+      fetch(
+        `https://graph.facebook.com/v20.0/${finalPageId}/subscribed_apps?subscribed_fields=messages,messaging_postbacks&access_token=${pageAccessToken}`,
+        { method: "POST" }
+      ).catch((e) => console.warn("[Auto-Subscribe] error:", e));
+    }
 
     return NextResponse.json({
       success: true,

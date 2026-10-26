@@ -1,5 +1,6 @@
 import { debouncer, DebounceBatch } from "./debouncer";
 import { db } from "../db";
+import { pgDb, isPostgresConfigured } from "../db/postgres";
 import { processMultimodalSalesMessage } from "../ai/gemini";
 import { MetaGraphClient } from "./client";
 import { decryptToken } from "../security";
@@ -17,10 +18,27 @@ export async function handleIncomingMetaMessage(
 ) {
   console.log(`[Meta Handler] Incoming message for Page: ${pageId} from PSID: ${senderPsid}`);
 
-  const page = db.getPageByPageId(pageId);
+  let page = db.getPageByPageId(pageId);
+  if (!page && isPostgresConfigured) {
+    try {
+      const pgPage = await pgDb.getPageByPageId(pageId);
+      if (pgPage) {
+        page = pgPage;
+        db.savePage(pgPage); // warm local cache
+      }
+    } catch (e) {
+      console.warn("[Meta Handler] Error querying pgDb:", e);
+    }
+  }
+
   if (!page) {
     const knownPages = db.getPages().map((p) => `${p.pageName} (${p.pageId})`).join(", ");
     console.warn(`[Meta Handler] No connected page found in DB for pageId: ${pageId}. Available pages in DB: [${knownPages}]`);
+    return;
+  }
+
+  if (!page.isActive) {
+    console.log(`[Meta Handler] Page ${page.pageName} (${pageId}) bot is currently disabled.`);
     return;
   }
 

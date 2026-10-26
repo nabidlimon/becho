@@ -1,5 +1,25 @@
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  passwordHash?: string;
+  avatarUrl?: string;
+  facebookUserId?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserSession {
+  userId: string;
+  email: string;
+  name: string;
+  avatarUrl?: string;
+  role?: string;
+}
+
 export interface FacebookPage {
   id: string;
+  userId?: string;
   pageId: string;
   pageName: string;
   pageAvatarUrl?: string;

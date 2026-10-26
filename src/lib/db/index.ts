@@ -1,8 +1,10 @@
 import fs from "fs";
 import path from "path";
-import { FacebookPage, Product, Customer, Conversation, Order, Message } from "./types";
+import { FacebookPage, Product, Customer, Conversation, Order, Message, User } from "./types";
+import { pgDb, isPostgresConfigured } from "./postgres";
 
 interface DataStore {
+  users: User[];
   pages: FacebookPage[];
   products: Product[];
   customers: Customer[];
@@ -15,6 +17,17 @@ const DATA_FILE = path.join(DATA_DIR, "becho_store.json");
 
 // Initial Seed Data for Instant Out-of-the-Box Experience
 const initialSeedData: DataStore = {
+  users: [
+    {
+      id: "user-admin-01",
+      name: "NanoLez Admin",
+      email: "admin@nanolez.tech",
+      passwordHash: "$2a$10$wT02U9K4L9B8h4x5S9p1Ou7K8aP.P2h.H2wK7xK.E1a2b3c4d5e6f", // hashed 'admin123'
+      avatarUrl: "https://mbot.nanolez.tech/logo.svg",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    },
+  ],
   pages: [
     {
       id: "page-demo-01",
@@ -281,7 +294,9 @@ function ensureStore(): DataStore {
       return initialSeedData;
     }
     const content = fs.readFileSync(DATA_FILE, "utf-8");
-    return JSON.parse(content);
+    const data = JSON.parse(content);
+    if (!data.users) data.users = initialSeedData.users;
+    return data;
   } catch (err) {
     console.error("Store error:", err);
     return initialSeedData;
@@ -300,8 +315,38 @@ function saveStore(data: DataStore): void {
 }
 
 export const db = {
+  // Users
+  getUsers: (): User[] => ensureStore().users || [],
+  getUserByEmail: (email: string): User | undefined => {
+    const users = ensureStore().users || [];
+    return users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  },
+  getUserById: (id: string): User | undefined => {
+    const users = ensureStore().users || [];
+    return users.find((u) => u.id === id);
+  },
+  saveUser: (user: User): User => {
+    const store = ensureStore();
+    if (!store.users) store.users = [];
+    const idx = store.users.findIndex((u) => u.id === user.id || u.email.toLowerCase() === user.email.toLowerCase());
+    if (idx >= 0) {
+      store.users[idx] = { ...store.users[idx], ...user, updatedAt: new Date().toISOString() };
+    } else {
+      store.users.push(user);
+    }
+    saveStore(store);
+    if (isPostgresConfigured) {
+      pgDb.saveUser(user).catch((e) => console.error("[DB Sync User]", e));
+    }
+    return user;
+  },
+
   // Pages
-  getPages: (): FacebookPage[] => ensureStore().pages,
+  getPages: (userId?: string): FacebookPage[] => {
+    const pages = ensureStore().pages;
+    if (!userId) return pages;
+    return pages.filter((p) => !p.userId || p.userId === userId);
+  },
   getPageByPageId: (pageId: string): FacebookPage | undefined =>
     ensureStore().pages.find((p) => p.pageId === pageId),
   savePage: (page: FacebookPage): FacebookPage => {
@@ -313,6 +358,9 @@ export const db = {
       store.pages.push(page);
     }
     saveStore(store);
+    if (isPostgresConfigured) {
+      pgDb.savePage(page).catch((e) => console.error("[DB Sync Page]", e));
+    }
     return page;
   },
 

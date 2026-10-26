@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   MessageSquare,
   ShoppingBag,
@@ -19,12 +20,16 @@ import {
   ExternalLink,
   ShieldCheck,
   ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { FacebookPage, Product, Order, Conversation } from "@/lib/db/types";
 
 export default function DashboardPage() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<"overview" | "inbox" | "orders" | "catalog" | "settings">("overview");
+  const [currentUser, setCurrentUser] = useState<{ id: string; name: string; email: string; avatarUrl?: string } | null>(null);
   const [pages, setPages] = useState<FacebookPage[]>([]);
+  const [selectedPageId, setSelectedPageId] = useState<string>("");
   const [products, setProducts] = useState<Product[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -32,18 +37,28 @@ export default function DashboardPage() {
   const [replyText, setReplyText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch all initial data
+  // Fetch all initial data including authenticated user session
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [pagesRes, prodRes, ordRes, chatRes] = await Promise.all([
+      const [meRes, pagesRes, prodRes, ordRes, chatRes] = await Promise.all([
+        fetch("/api/auth/me").then((r) => r.json()).catch(() => ({ authenticated: false })),
         fetch("/api/pages").then((r) => r.json()),
         fetch("/api/products").then((r) => r.json()),
         fetch("/api/orders").then((r) => r.json()),
         fetch("/api/chat").then((r) => r.json()),
       ]);
 
-      setPages(pagesRes.pages || []);
+      if (meRes.authenticated && meRes.user) {
+        setCurrentUser(meRes.user);
+      }
+
+      const fetchedPages = (meRes.pages && meRes.pages.length > 0) ? meRes.pages : (pagesRes.pages || []);
+      setPages(fetchedPages);
+      if (fetchedPages.length > 0 && !selectedPageId) {
+        setSelectedPageId(fetchedPages[0].pageId);
+      }
+
       setProducts(prodRes.products || []);
       setOrders(ordRes.orders || []);
       setConversations(chatRes.conversations || []);
@@ -57,11 +72,21 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+      router.push("/login");
+      router.refresh();
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, []);
 
-  const activePage = pages[0];
+  const activePage = pages.find((p) => p.pageId === selectedPageId) || pages[0];
 
   // Toggle Human Takeover / AI Active
   const handleToggleAi = async (conv: Conversation) => {
@@ -214,15 +239,62 @@ export default function DashboardPage() {
           </nav>
         </div>
 
-        {/* Bottom Fast Links */}
-        <div className="pt-6 border-t border-slate-800/80">
-          <Link
-            href="/onboarding"
-            className="flex items-center gap-2 text-xs font-semibold text-slate-400 hover:text-indigo-300 transition"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span>Re-run Onboarding</span>
-          </Link>
+        {/* Bottom User Card & Quick Links */}
+        <div className="pt-5 border-t border-slate-800/80 space-y-3">
+          {pages.length > 1 && (
+            <div>
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wider mb-1">
+                Active Store
+              </label>
+              <select
+                value={selectedPageId}
+                onChange={(e) => setSelectedPageId(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 rounded-xl px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+              >
+                {pages.map((p) => (
+                  <option key={p.pageId} value={p.pageId}>
+                    {p.pageName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {currentUser && (
+            <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/30 flex items-center justify-center text-xs font-bold text-indigo-400 shrink-0">
+                  {currentUser.name ? currentUser.name[0].toUpperCase() : "U"}
+                </div>
+                <div className="overflow-hidden">
+                  <div className="text-xs font-bold text-white truncate">{currentUser.name}</div>
+                  <div className="text-[10px] text-slate-400 truncate">{currentUser.email}</div>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                title="Log Out"
+                className="p-1.5 rounded-lg text-slate-400 hover:text-red-400 hover:bg-slate-800/80 transition"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          )}
+
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-400 pt-1">
+            <Link
+              href="/onboarding"
+              className="flex items-center gap-1.5 hover:text-indigo-300 transition"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>Connect Page</span>
+            </Link>
+            {!currentUser && (
+              <Link href="/login" className="text-indigo-400 hover:text-indigo-300">
+                Sign In
+              </Link>
+            )}
+          </div>
         </div>
       </aside>
 
