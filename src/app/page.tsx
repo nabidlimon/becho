@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Users,
 } from "lucide-react";
+import { InteractiveMessengerHero } from "@/components/landing/InteractiveMessengerHero";
+import { CodRoiCalculator } from "@/components/landing/CodRoiCalculator";
 
 export default function HomePage() {
   return (
@@ -41,6 +43,9 @@ export default function HomePage() {
         <div className="hidden md:flex items-center gap-8 text-sm font-medium text-slate-300">
           <Link href="#features" className="hover:text-white transition">
             Features
+          </Link>
+          <Link href="#roi-calculator" className="hover:text-white transition">
+            COD Calculator
           </Link>
           <Link href="#comparison" className="hover:text-white transition">
             ROI vs Human
@@ -147,6 +152,9 @@ export default function HomePage() {
             <div className="text-xs text-slate-400">Zero-code onboarding</div>
           </div>
         </div>
+
+        {/* Live Interactive Messenger Preview */}
+        <InteractiveMessengerHero />
       </section>
 
       {/* Feature Pillars */}
@@ -218,6 +226,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Interactive COD ROI Calculator */}
+      <CodRoiCalculator />
 
       {/* Comparison: Human Moderator vs Becho */}
       <section id="comparison" className="relative z-10 max-w-5xl mx-auto px-6 py-20">

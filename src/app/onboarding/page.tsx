@@ -1033,7 +1033,11 @@ export default function OnboardingPage() {
 
               {!isActivated ? (
                 <button
-                  onClick={() => setIsActivated(true)}
+                  onClick={async () => {
+                    await savePageConfig();
+                    await saveCatalogConfig();
+                    setIsActivated(true);
+                  }}
                   className="px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-extrabold text-sm shadow-xl shadow-emerald-500/20 transition flex items-center gap-2"
                 >
                   <Zap className="w-4 h-4 text-yellow-300" />
