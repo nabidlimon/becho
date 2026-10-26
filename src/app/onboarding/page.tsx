@@ -134,26 +134,37 @@ export default function OnboardingPage() {
   const handleConnectFacebook = async () => {
     setIsConnectingFacebook(true);
     setTokenTestResult(null);
+
+    // Open popup synchronously on click event so browser popup blockers don't suppress it
+    const width = 640;
+    const height = 750;
+    const left = window.screen.width / 2 - width / 2;
+    const top = window.screen.height / 2 - height / 2;
+    const popup = window.open(
+      "about:blank",
+      "FacebookLogin",
+      `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,status=1`
+    );
+
     try {
-      const res = await fetch("/api/auth/facebook");
+      const res = await fetch("/api/auth/facebook?format=json");
       const data = await res.json();
 
       if (data.configured && data.authUrl) {
-        const width = 640;
-        const height = 750;
-        const left = window.screen.width / 2 - width / 2;
-        const top = window.screen.height / 2 - height / 2;
-        window.open(
-          data.authUrl,
-          "FacebookLogin",
-          `width=${width},height=${height},top=${top},left=${left},scrollbars=yes,status=1`
-        );
+        if (popup && !popup.closed) {
+          popup.location.href = data.authUrl;
+        } else {
+          // Fallback if popup was blocked
+          window.location.assign(data.authUrl);
+        }
       } else {
+        if (popup && !popup.closed) popup.close();
         // App ID/Secret not in .env.local: show interactive modal for setup / demo selector
         setOauthModalOpen(true);
         setIsConnectingFacebook(false);
       }
     } catch (err: any) {
+      if (popup && !popup.closed) popup.close();
       setTokenTestResult({ success: false, error: "Failed to reach authorization service" });
       setIsConnectingFacebook(false);
     }

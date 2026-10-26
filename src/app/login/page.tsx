@@ -42,10 +42,22 @@ function LoginForm() {
     }
   };
 
-  const handleFacebookLogin = () => {
+  const handleFacebookLogin = async () => {
     setIsFbLoading(true);
     setError("");
-    window.location.href = "/api/auth/facebook?redirect=true";
+    try {
+      const res = await fetch("/api/auth/facebook?format=json");
+      const data = await res.json();
+      if (data.configured && data.authUrl) {
+        window.location.assign(data.authUrl);
+      } else {
+        setError(data.message || "Meta App ID and Secret are not configured in environment variables.");
+        setIsFbLoading(false);
+      }
+    } catch {
+      // Fallback to direct GET route redirect
+      window.location.href = "/api/auth/facebook?redirect=true";
+    }
   };
 
   const handleFillDemo = () => {
