@@ -93,6 +93,11 @@ export default function OnboardingPage() {
   // Listen for Meta OAuth Popup Callback message
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
+      // Validate origin to prevent cross-origin injection attacks
+      if (typeof window !== "undefined" && event.origin !== window.location.origin) {
+        return;
+      }
+
       if (event.data && event.data.type === "META_OAUTH_RESPONSE") {
         setIsConnectingFacebook(false);
         if (event.data.success && Array.isArray(event.data.pages) && event.data.pages.length > 0) {

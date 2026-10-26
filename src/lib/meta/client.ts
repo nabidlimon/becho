@@ -24,11 +24,14 @@ export class MetaGraphClient {
   }
 
   private async postMessage(recipientPsid: string, messagePayload: any) {
-    const url = `${config.meta.graphBaseUrl}/${this.apiVersion}/me/messages?access_token=${this.pageAccessToken}`;
+    const url = `${config.meta.graphBaseUrl}/${this.apiVersion}/me/messages`;
     try {
       const res = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.pageAccessToken}`,
+        },
         body: JSON.stringify({
           recipient: { id: recipientPsid },
           messaging_type: "RESPONSE",

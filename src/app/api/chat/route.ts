@@ -2,19 +2,47 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { MetaGraphClient } from "@/lib/meta/client";
 import { decryptToken } from "@/lib/security";
+import { getSession } from "@/lib/auth/session";
 
 export async function GET(req: NextRequest) {
+  const session = await getSession(req);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const userPages = db.getPages(session.userId);
+  const allowedPageIds = new Set(userPages.map((p) => p.pageId));
+
   const pageId = req.nextUrl.searchParams.get("pageId") || undefined;
-  const conversations = db.getConversations(pageId);
+  if (pageId && !allowedPageIds.has(pageId)) {
+    return NextResponse.json({ error: "Forbidden: Page does not belong to user" }, { status: 403 });
+  }
+
+  const allConversations = db.getConversations(pageId);
+  const conversations = pageId
+    ? allConversations
+    : allConversations.filter((c) => allowedPageIds.has(c.pageId));
+
   return NextResponse.json({ conversations });
 }
 
 export async function POST(req: NextRequest) {
   try {
+    const session = await getSession(req);
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
     const { pageId, psid, action, messageText } = await req.json();
 
     if (!pageId || !psid) {
       return NextResponse.json({ error: "pageId and psid are required" }, { status: 400 });
+    }
+
+    const userPages = db.getPages(session.userId);
+    const allowedPageIds = new Set(userPages.map((p) => p.pageId));
+    if (!allowedPageIds.has(pageId)) {
+      return NextResponse.json({ error: "Forbidden: You do not have permission to manage this page chat." }, { status: 403 });
     }
 
     // Action 1: Toggle AI Active / Human Takeover

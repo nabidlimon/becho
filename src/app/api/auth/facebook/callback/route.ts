@@ -19,6 +19,8 @@ export async function GET(req: NextRequest) {
   const code = searchParams.get("code");
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
+  const incomingState = searchParams.get("state");
+  const savedState = req.cookies.get("becho_oauth_state")?.value;
 
   // Dynamically resolve origin from request headers to prevent domain mismatches
   const forwardedHost = req.headers.get("x-forwarded-host");
@@ -31,6 +33,15 @@ export async function GET(req: NextRequest) {
 
   const redirectUri = `${appUrl}/api/auth/facebook/callback`;
 
+  // Verify CSRF state token
+  if (!incomingState || !savedState || incomingState !== savedState) {
+    return renderHtmlResponse({
+      success: false,
+      error: "Security verification failed: OAuth state mismatch or expired. Please try connecting again.",
+      pages: [],
+    }, undefined, appUrl);
+  }
+
   // Handle OAuth error/cancellation from Facebook
   if (error || !code) {
     const errorMsg = errorDescription || error || "Facebook authorization was cancelled.";
@@ -38,7 +49,7 @@ export async function GET(req: NextRequest) {
       success: false,
       error: errorMsg,
       pages: [],
-    });
+    }, undefined, appUrl);
   }
 
   try {
@@ -175,22 +186,24 @@ export async function GET(req: NextRequest) {
     return renderHtmlResponse({
       success: true,
       pages,
-    }, sessionToken);
+    }, sessionToken, appUrl);
   } catch (err: any) {
     console.error("Facebook OAuth callback error:", err);
     return renderHtmlResponse({
       success: false,
       error: err.message || "Failed to connect Facebook account",
       pages: [],
-    });
+    }, undefined, appUrl);
   }
 }
 
 function renderHtmlResponse(
   data: { success: boolean; error?: string; pages: any[] },
-  sessionToken?: string
+  sessionToken?: string,
+  targetAppUrl: string = "*"
 ) {
-  const safeData = JSON.stringify(data);
+  const safeData = JSON.stringify(data).replace(/</g, "\\u003c").replace(/>/g, "\\u003e");
+  const safeTargetOrigin = JSON.stringify(targetAppUrl || "*");
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -251,8 +264,9 @@ function renderHtmlResponse(
   <script>
     (function() {
       const result = ${safeData};
+      const targetOrigin = ${safeTargetOrigin};
       if (window.opener && !window.opener.closed) {
-        window.opener.postMessage({ type: 'META_OAUTH_RESPONSE', ...result }, '*');
+        window.opener.postMessage({ type: 'META_OAUTH_RESPONSE', ...result }, targetOrigin === '*' ? window.location.origin : targetOrigin);
         setTimeout(function() {
           window.close();
         }, 1000);
@@ -272,6 +286,9 @@ function renderHtmlResponse(
       "Content-Type": "text/html; charset=utf-8",
     },
   });
+
+  // Always clear oauth state after callback
+  response.cookies.delete("becho_oauth_state");
 
   if (sessionToken) {
     setSessionCookie(response, sessionToken);

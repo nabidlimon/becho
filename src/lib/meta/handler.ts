@@ -56,7 +56,8 @@ export async function handleIncomingMetaMessage(
     senderPsid,
     text || "",
     imageUrl ? [imageUrl] : [],
-    "Facebook Buyer"
+    "Facebook Buyer",
+    audioUrl
   );
 
   if (!aiResult.replyText) {

@@ -18,7 +18,8 @@ export async function processMultimodalSalesMessage(
   psid: string,
   userText: string,
   imageUrls: string[] = [],
-  customerName: string = "Buyer"
+  customerName: string = "Buyer",
+  audioUrl?: string
 ): Promise<AIResponseResult> {
   const page = db.getPageByPageId(pageId) || db.getPages()[0] || {
     id: "default-page",
@@ -80,6 +81,26 @@ export async function processMultimodalSalesMessage(
           }
         } catch (err) {
           console.error("Failed to load image for multimodal vision:", err);
+        }
+      }
+
+      // Add audio voice note part if provided
+      if (audioUrl) {
+        try {
+          const audioRes = await fetch(audioUrl);
+          if (audioRes.ok) {
+            const buffer = await audioRes.arrayBuffer();
+            const base64 = Buffer.from(buffer).toString("base64");
+            const contentType = audioRes.headers.get("content-type") || "audio/mp4";
+            parts.push({
+              inlineData: {
+                data: base64,
+                mimeType: contentType,
+              },
+            });
+          }
+        } catch (err) {
+          console.error("Failed to load audio for voice note analysis:", err);
         }
       }
 
@@ -166,17 +187,40 @@ ${userText || (imageUrls.length > 0 ? "Customer sent a photo asking about this i
   // 3. Parse [ORDER_CONFIRMED: ...]
   let orderCreated: Order | undefined;
   let matchedProduct: Product | undefined;
-  const orderMatch = replyText.match(/\[ORDER_CONFIRMED:\s*(\{.*?\})\]/s);
+  const orderMatch = replyText.match(/\[ORDER_CONFIRMED:\s*(\{[\s\S]*?\})\s*\]/);
 
   if (orderMatch && catalog.length > 0) {
     try {
       const orderData = JSON.parse(orderMatch[1]);
-      matchedProduct =
-        catalog.find((p) => p.id === orderData.productId) || catalog[0];
+      
+      // Match by product ID, SKU, or Title
+      matchedProduct = catalog.find((p) => p.id === orderData.productId);
+      if (!matchedProduct && orderData.title) {
+        const lowerTitle = String(orderData.title).toLowerCase();
+        matchedProduct = catalog.find(
+          (p) => p.title.toLowerCase().includes(lowerTitle) || lowerTitle.includes(p.title.toLowerCase())
+        );
+      }
+      if (!matchedProduct) {
+        const lowerUser = userText.toLowerCase();
+        matchedProduct = catalog.find((p) => lowerUser.includes(p.title.toLowerCase()));
+      }
+      if (!matchedProduct && catalog.length === 1) {
+        matchedProduct = catalog[0];
+      }
 
       if (matchedProduct) {
         const itemPrice = matchedProduct.discountPrice || matchedProduct.price;
-        const deliveryFee = page.insideCityDeliveryFee || 70;
+
+        // Dynamic delivery fee calculation based on shipping address
+        const fullAddress = `${orderData.address || ""} ${userText}`.toLowerCase();
+        const isOutsideCity = /(outside|chittagong|ctg|sylhet|rajshahi|khulna|barishal|rangpur|mymensingh|cumilla|comilla|gazipur|narayanganj|savar|bogra|cox'?s bazar|jessore)/i.test(
+          fullAddress
+        );
+        const deliveryFee = isOutsideCity
+          ? (page.outsideCityDeliveryFee || 130)
+          : (page.insideCityDeliveryFee || 70);
+
         const subtotal = itemPrice * (orderData.quantity || 1);
         const totalAmount = subtotal + deliveryFee;
 
@@ -208,7 +252,7 @@ ${userText || (imageUrls.length > 0 ? "Customer sent a photo asking about this i
       }
 
       // Clean the machine-readable tag from the user-facing text
-      replyText = replyText.replace(/\[ORDER_CONFIRMED:.*?\]/s, "").trim();
+      replyText = replyText.replace(/\[ORDER_CONFIRMED:[\s\S]*?\]/, "").trim();
     } catch (parseErr) {
       console.error("Failed to parse order JSON:", parseErr);
     }

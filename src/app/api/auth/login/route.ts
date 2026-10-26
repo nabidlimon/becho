@@ -2,9 +2,19 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { db } from "@/lib/db";
 import { createSessionToken, setSessionCookie } from "@/lib/auth/session";
+import { checkRateLimit, getClientIp } from "@/lib/security";
 
 export async function POST(req: NextRequest) {
   try {
+    const ip = getClientIp(req.headers);
+    const rateCheck = checkRateLimit(`login_${ip}`, 10, 60 * 1000);
+    if (!rateCheck.success) {
+      return NextResponse.json(
+        { success: false, error: "Too many login attempts. Please wait 1 minute before trying again." },
+        { status: 429 }
+      );
+    }
+
     const { email, password } = await req.json();
 
     if (!email || !password) {

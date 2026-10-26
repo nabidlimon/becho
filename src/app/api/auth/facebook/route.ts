@@ -54,7 +54,7 @@ export async function GET(req: NextRequest) {
     "pages_manage_metadata",
   ].join(",");
 
-  const state = Math.random().toString(36).substring(2, 15);
+  const state = Math.random().toString(36).substring(2, 15) + "_" + Date.now();
 
   const authUrl = `https://www.facebook.com/${config.meta.apiVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
     redirectUri
@@ -66,14 +66,21 @@ export async function GET(req: NextRequest) {
     searchParams.get("redirect") === "false";
 
   // If JSON is explicitly requested (e.g., from onboarding popup helper), return JSON
-  if (wantsJson) {
-    return NextResponse.json({
-      configured: true,
-      authUrl,
-      redirectUri,
-    });
-  }
+  const response = wantsJson
+    ? NextResponse.json({
+        configured: true,
+        authUrl,
+        redirectUri,
+      })
+    : NextResponse.redirect(authUrl);
 
-  // By default for direct browser visits and login buttons, immediately redirect to Facebook Login
-  return NextResponse.redirect(authUrl);
+  response.cookies.set("becho_oauth_state", state, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 600, // 10 minutes
+  });
+
+  return response;
 }

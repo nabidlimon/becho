@@ -71,13 +71,15 @@ export async function POST(req: NextRequest) {
               }
             }
 
-            // Directly process and dispatch reply to Meta Graph API
-            await handleIncomingMetaMessage(pageId, senderPsid, text, imageUrl, audioUrl);
+            // Process asynchronously so HTTP 200 OK ACK is sent back to Meta immediately in <50ms
+            handleIncomingMetaMessage(pageId, senderPsid, text, imageUrl, audioUrl).catch((err) => {
+              console.error(`[Webhook Async Processing Error for Page ${pageId} / PSID ${senderPsid}]:`, err);
+            });
           }
         }
       }
 
-      // Fast ACK to Meta within <100ms
+      // Fast ACK to Meta within <50ms to prevent retries & timeouts
       return new NextResponse("EVENT_RECEIVED", { status: 200 });
     }
 

@@ -64,37 +64,57 @@ export default function DashboardPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Fetch all initial data
-  const loadData = async () => {
+  const loadData = async (targetPageId?: string) => {
     setIsLoading(true);
     try {
-      const [meRes, pagesRes, prodRes, ordRes, chatRes] = await Promise.all([
+      const [meRes, pagesRes] = await Promise.all([
         fetch("/api/auth/me").then((r) => r.json()).catch(() => ({ authenticated: false })),
         fetch("/api/pages").then((r) => r.json()).catch(() => ({ pages: [] })),
-        fetch("/api/products").then((r) => r.json()).catch(() => ({ products: [] })),
-        fetch("/api/orders").then((r) => r.json()).catch(() => ({ orders: [] })),
-        fetch("/api/chat").then((r) => r.json()).catch(() => ({ conversations: [] })),
       ]);
 
       if (meRes.authenticated && meRes.user) {
         setCurrentUser(meRes.user);
       }
 
-      const fetchedPages = (meRes.pages && meRes.pages.length > 0) ? meRes.pages : (pagesRes.pages || []);
+      const fetchedPages: FacebookPage[] =
+        meRes.pages && meRes.pages.length > 0 ? meRes.pages : pagesRes.pages || [];
       setPages(fetchedPages);
-      if (fetchedPages.length > 0 && !selectedPageId) {
-        setSelectedPageId(fetchedPages[0].pageId);
+
+      const activeId = targetPageId || selectedPageId || (fetchedPages.length > 0 ? fetchedPages[0].pageId : "");
+      if (activeId && activeId !== selectedPageId) {
+        setSelectedPageId(activeId);
       }
 
-      setProducts(prodRes.products || []);
-      setOrders(ordRes.orders || []);
-      setConversations(chatRes.conversations || []);
-      if (chatRes.conversations?.length > 0) {
-        setSelectedConv(chatRes.conversations[0]);
-      }
+      // Fetch page-scoped data
+      await fetchPageData(activeId);
     } catch (err) {
       console.error("Dashboard data load error:", err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Fetch page-isolated catalog, orders, and chats
+  const fetchPageData = async (pageId?: string) => {
+    try {
+      const queryParam = pageId ? `?pageId=${pageId}` : "";
+      const [prodRes, ordRes, chatRes] = await Promise.all([
+        fetch(`/api/products${queryParam}`).then((r) => r.json()).catch(() => ({ products: [] })),
+        fetch(`/api/orders${queryParam}`).then((r) => r.json()).catch(() => ({ orders: [] })),
+        fetch(`/api/chat${queryParam}`).then((r) => r.json()).catch(() => ({ conversations: [] })),
+      ]);
+
+      setProducts(prodRes.products || []);
+      setOrders(ordRes.orders || []);
+      const convs = chatRes.conversations || [];
+      setConversations(convs);
+      if (convs.length > 0) {
+        setSelectedConv((prev) => (prev ? convs.find((c: any) => c.id === prev.id) || convs[0] : convs[0]));
+      } else {
+        setSelectedConv(null);
+      }
+    } catch (err) {
+      console.error("Error fetching page data:", err);
     }
   };
 
@@ -111,6 +131,34 @@ export default function DashboardPage() {
   useEffect(() => {
     loadData();
   }, []);
+
+  // Re-fetch page data when merchant switches active Facebook page in the sidebar
+  useEffect(() => {
+    if (selectedPageId) {
+      fetchPageData(selectedPageId);
+    }
+  }, [selectedPageId]);
+
+  // Real-time polling: silently refresh orders & messages every 10 seconds
+  useEffect(() => {
+    if (!selectedPageId) return;
+    const interval = setInterval(() => {
+      const queryParam = `?pageId=${selectedPageId}`;
+      Promise.all([
+        fetch(`/api/orders${queryParam}`).then((r) => r.json()).catch(() => ({ orders: [] })),
+        fetch(`/api/chat${queryParam}`).then((r) => r.json()).catch(() => ({ conversations: [] })),
+      ]).then(([ordRes, chatRes]) => {
+        if (ordRes.orders) setOrders(ordRes.orders);
+        if (chatRes.conversations) {
+          setConversations(chatRes.conversations);
+          setSelectedConv((prev) =>
+            prev ? chatRes.conversations.find((c: any) => c.id === prev.id) || prev : chatRes.conversations[0] || null
+          );
+        }
+      });
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [selectedPageId]);
 
   const activePage = pages.find((p) => p.pageId === selectedPageId) || pages[0];
 
@@ -132,13 +180,17 @@ export default function DashboardPage() {
   const handleCreateProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newPrice) return;
+    if (!activePage?.pageId) {
+      showToast("Please connect or select a Facebook Page first.", "error");
+      return;
+    }
     setIsSavingProduct(true);
     try {
       const res = await fetch("/api/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          pageId: activePage?.pageId || "897658663436930",
+          pageId: activePage.pageId,
           title: newTitle.trim(),
           price: Number(newPrice),
           discountPrice: newDiscountPrice ? Number(newDiscountPrice) : undefined,

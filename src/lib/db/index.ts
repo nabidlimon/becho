@@ -381,12 +381,18 @@ export const db = {
       store.products.push(product);
     }
     saveStore(store);
+    if (isPostgresConfigured) {
+      pgDb.saveProduct(product).catch((e) => console.error("[DB Sync Product]", e));
+    }
     return product;
   },
   batchAddProducts: (newProducts: Product[]): void => {
     const store = ensureStore();
     store.products.push(...newProducts);
     saveStore(store);
+    if (isPostgresConfigured) {
+      pgDb.batchAddProducts(newProducts).catch((e) => console.error("[DB Sync Batch Products]", e));
+    }
   },
   deleteProduct: (id: string): boolean => {
     const store = ensureStore();
@@ -394,9 +400,23 @@ export const db = {
     store.products = store.products.filter((p) => p.id !== id);
     if (store.products.length !== initialLen) {
       saveStore(store);
+      if (isPostgresConfigured) {
+        pgDb.deleteProduct(id).catch((e) => console.error("[DB Sync Delete Product]", e));
+      }
       return true;
     }
     return false;
+  },
+  decrementProductStock: (id: string, qty: number = 1): void => {
+    const store = ensureStore();
+    const prod = store.products.find((p) => p.id === id);
+    if (prod) {
+      prod.stockQuantity = Math.max(0, prod.stockQuantity - qty);
+      saveStore(store);
+    }
+    if (isPostgresConfigured) {
+      pgDb.decrementProductStock(id, qty).catch((e) => console.error("[DB Decrement Stock]", e));
+    }
   },
 
   // Customers
@@ -411,6 +431,9 @@ export const db = {
       store.customers.push(customer);
     }
     saveStore(store);
+    if (isPostgresConfigured) {
+      pgDb.saveCustomer(customer).catch((e) => console.error("[DB Sync Customer]", e));
+    }
     return customer;
   },
 
@@ -431,6 +454,9 @@ export const db = {
       store.conversations.unshift(conv);
     }
     saveStore(store);
+    if (isPostgresConfigured) {
+      pgDb.saveConversation(conv).catch((e) => console.error("[DB Sync Conversation]", e));
+    }
     return conv;
   },
   addMessageToConversation: (
@@ -470,6 +496,11 @@ export const db = {
       store.conversations.unshift(conv);
     }
     saveStore(store);
+    if (isPostgresConfigured) {
+      pgDb.addMessageToConversation(pageId, psid, customerName, message).catch((e) =>
+        console.error("[DB Sync Message]", e)
+      );
+    }
     return conv;
   },
   setAiActiveState: (pageId: string, psid: string, isAiActive: boolean, reason?: string): void => {
@@ -480,6 +511,11 @@ export const db = {
       if (reason) conv.handoverTrigger = reason;
       if (!isAiActive) conv.unreadByHuman = true;
       saveStore(store);
+    }
+    if (isPostgresConfigured) {
+      pgDb.setAiActiveState(pageId, psid, isAiActive, reason).catch((e) =>
+        console.error("[DB Sync AI State]", e)
+      );
     }
   },
 
@@ -493,6 +529,17 @@ export const db = {
     const store = ensureStore();
     store.orders.unshift(order);
     saveStore(store);
+
+    // Auto-decrement inventory stock quantity for each ordered item
+    for (const item of order.items) {
+      if (item.productId) {
+        db.decrementProductStock(item.productId, item.quantity || 1);
+      }
+    }
+
+    if (isPostgresConfigured) {
+      pgDb.createOrder(order).catch((e) => console.error("[DB Sync Order]", e));
+    }
     return order;
   },
   updateOrderStatus: (orderId: string, status: Order["status"]): Order | undefined => {
@@ -501,8 +548,10 @@ export const db = {
     if (ord) {
       ord.status = status;
       saveStore(store);
-      return ord;
     }
-    return undefined;
+    if (isPostgresConfigured) {
+      pgDb.updateOrderStatus(orderId, status).catch((e) => console.error("[DB Sync Order Status]", e));
+    }
+    return ord;
   },
 };

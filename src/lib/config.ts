@@ -2,10 +2,14 @@ import fs from "fs";
 import path from "path";
 
 /**
- * Dynamically resolves environment variables, with a live fallback to .env.local
- * so changes in development take effect immediately without restarting the dev server.
+ * In-memory cache for .env.local variables to avoid repeated synchronous disk reads.
  */
-function getEnvVar(key: string, defaultValue = ""): string {
+let cachedEnvLocal: Record<string, string> | null = null;
+
+function loadEnvLocalCache(): Record<string, string> {
+  if (cachedEnvLocal !== null) return cachedEnvLocal;
+  cachedEnvLocal = {};
+
   try {
     const envPath = path.join(process.cwd(), ".env.local");
     if (fs.existsSync(envPath)) {
@@ -17,10 +21,14 @@ function getEnvVar(key: string, defaultValue = ""): string {
           const eqIdx = trimmed.indexOf("=");
           if (eqIdx !== -1) {
             const k = trimmed.substring(0, eqIdx).trim();
-            const v = trimmed.substring(eqIdx + 1).trim();
-            if (k === key && v) {
-              process.env[key] = v;
-              return v;
+            let v = trimmed.substring(eqIdx + 1).trim();
+            // Strip surrounding quotes if present
+            if ((v.startsWith('"') && v.endsWith('"')) || (v.startsWith("'") && v.endsWith("'"))) {
+              v = v.slice(1, -1);
+            }
+            cachedEnvLocal[k] = v;
+            if (!process.env[k]) {
+              process.env[k] = v;
             }
           }
         }
@@ -30,8 +38,22 @@ function getEnvVar(key: string, defaultValue = ""): string {
     // Ignore file read error if running in browser or edge
   }
 
+  return cachedEnvLocal;
+}
+
+/**
+ * Resolves environment variables efficiently:
+ * 1. Checks process.env first (O(1) in-memory)
+ * 2. Falls back to cached .env.local file values
+ */
+function getEnvVar(key: string, defaultValue = ""): string {
   if (process.env[key]) {
     return process.env[key]!;
+  }
+
+  const fileEnv = loadEnvLocalCache();
+  if (fileEnv[key]) {
+    return fileEnv[key];
   }
 
   return defaultValue;
