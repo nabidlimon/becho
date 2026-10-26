@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { config } from "@/lib/config";
 import { verifyMetaSignature } from "@/lib/security";
 import { debouncer } from "@/lib/meta/debouncer";
-import { initializeMetaDebounceHandler } from "@/lib/meta/handler";
+import { initializeMetaDebounceHandler, handleIncomingMetaMessage } from "@/lib/meta/handler";
 
 // Ensure handler is initialized
 initializeMetaDebounceHandler();
@@ -71,15 +71,8 @@ export async function POST(req: NextRequest) {
               }
             }
 
-            // Enqueue into multi-burst debouncer
-            debouncer.addMessage({
-              senderPsid,
-              pageId,
-              text,
-              imageUrl,
-              audioUrl,
-              timestamp: Date.now(),
-            });
+            // Directly process and dispatch reply to Meta Graph API
+            await handleIncomingMetaMessage(pageId, senderPsid, text, imageUrl, audioUrl);
           }
         }
       }
