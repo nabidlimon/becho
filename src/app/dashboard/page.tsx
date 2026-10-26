@@ -21,6 +21,14 @@ import {
   ShieldCheck,
   ChevronRight,
   LogOut,
+  Copy,
+  Check,
+  X,
+  Sliders,
+  Tag,
+  DollarSign,
+  Power,
+  Trash2,
 } from "lucide-react";
 import { FacebookPage, Product, Order, Conversation } from "@/lib/db/types";
 
@@ -36,6 +44,37 @@ export default function DashboardPage() {
   const [selectedConv, setSelectedConv] = useState<Conversation | null>(null);
   const [replyText, setReplyText] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+
+  // Toast feedback state
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3500);
+  };
+
+  // Add Product Modal State
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newPrice, setNewPrice] = useState("");
+  const [newDiscountPrice, setNewDiscountPrice] = useState("");
+  const [newCategory, setNewCategory] = useState("Smart Gadgets");
+  const [newStock, setNewStock] = useState("10");
+  const [newImageUrl, setNewImageUrl] = useState("");
+  const [newDescription, setNewDescription] = useState("");
+  const [isSavingProduct, setIsSavingProduct] = useState(false);
+
+  // Store Settings & Persona state
+  const [botActive, setBotActive] = useState(true);
+  const [storePersona, setStorePersona] = useState<string>("gadgets");
+  const [insideFee, setInsideFee] = useState(70);
+  const [outsideFee, setOutsideFee] = useState(130);
+  const [allowDiscount, setAllowDiscount] = useState(true);
+  const [maxDiscount, setMaxDiscount] = useState(5);
+  const [codEnabled, setCodEnabled] = useState(true);
+  const [customPrompt, setCustomPrompt] = useState("");
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Fetch all initial data including authenticated user session
   const loadData = async () => {
@@ -87,6 +126,128 @@ export default function DashboardPage() {
   }, []);
 
   const activePage = pages.find((p) => p.pageId === selectedPageId) || pages[0];
+
+  // Sync active page settings into form state
+  useEffect(() => {
+    if (activePage) {
+      setBotActive(activePage.isActive);
+      setStorePersona(activePage.personaTemplate || "gadgets");
+      setInsideFee(activePage.insideCityDeliveryFee || 70);
+      setOutsideFee(activePage.outsideCityDeliveryFee || 130);
+      setAllowDiscount(activePage.allowDiscount ?? true);
+      setMaxDiscount(activePage.maxDiscountPercent || 5);
+      setCodEnabled(activePage.codEnabled ?? true);
+      setCustomPrompt(activePage.customSystemPrompt || "");
+    }
+  }, [activePage?.pageId]);
+
+  // Handle Add Product
+  const handleCreateProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTitle.trim() || !newPrice) return;
+    setIsSavingProduct(true);
+    try {
+      const res = await fetch("/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageId: activePage?.pageId || "897658663436930",
+          title: newTitle.trim(),
+          price: Number(newPrice),
+          discountPrice: newDiscountPrice ? Number(newDiscountPrice) : undefined,
+          category: newCategory,
+          stockQuantity: Number(newStock) || 10,
+          images: newImageUrl.trim()
+            ? [newImageUrl.trim()]
+            : ["https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600&h=800&fit=crop"],
+          description: newDescription.trim(),
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.product) {
+        setProducts([data.product, ...products]);
+        setIsAddProductOpen(false);
+        setNewTitle("");
+        setNewPrice("");
+        setNewDiscountPrice("");
+        setNewDescription("");
+        setNewImageUrl("");
+        showToast("Product added to catalog! AI will pitch and sell it immediately.");
+      } else {
+        showToast(data.error || "Failed to add product.", "error");
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Error adding product.", "error");
+    } finally {
+      setIsSavingProduct(false);
+    }
+  };
+
+  // Handle Delete Product
+  const handleDeleteProduct = async (productId: string, title: string) => {
+    if (!confirm(`Are you sure you want to remove "${title}" from the catalog?`)) return;
+    try {
+      const res = await fetch(`/api/products?id=${productId}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setProducts(products.filter((p) => p.id !== productId));
+        showToast("Product removed from catalog.");
+      } else {
+        showToast(data.error || "Failed to delete product.", "error");
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Error deleting product.", "error");
+    }
+  };
+
+  // Handle Save Store Settings
+  const handleSaveSettings = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activePage) return;
+    setIsSavingSettings(true);
+    try {
+      const res = await fetch("/api/pages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          pageId: activePage.pageId,
+          pageName: activePage.pageName,
+          pageAccessToken: activePage.pageAccessToken,
+          verifyToken: activePage.verifyToken,
+          isActive: botActive,
+          personaTemplate: storePersona,
+          customSystemPrompt: customPrompt,
+          insideCityDeliveryFee: Number(insideFee),
+          outsideCityDeliveryFee: Number(outsideFee),
+          currency: activePage.currency || "BDT",
+          allowDiscount,
+          maxDiscountPercent: Number(maxDiscount),
+          codEnabled,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.page) {
+        setPages(pages.map((p) => (p.pageId === data.page.pageId ? data.page : p)));
+        showToast("Store settings and AI sales rules updated successfully!");
+      } else {
+        showToast(data.error || "Failed to update settings.", "error");
+      }
+    } catch (err: any) {
+      showToast(err?.message || "Error updating settings.", "error");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  };
+
+  // Copy helper
+  const handleCopy = (text: string, field: string) => {
+    if (typeof navigator !== "undefined" && navigator.clipboard) {
+      navigator.clipboard.writeText(text);
+      setCopiedField(field);
+      showToast(`Copied ${field} to clipboard!`);
+      setTimeout(() => setCopiedField(null), 2000);
+    }
+  };
 
   // Toggle Human Takeover / AI Active
   const handleToggleAi = async (conv: Conversation) => {
@@ -632,97 +793,319 @@ export default function DashboardPage() {
         {/* TAB 4: Product Catalog */}
         {activeTab === "catalog" && (
           <div className="max-w-5xl mx-auto space-y-6 animate-slide-up">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <div>
                 <h1 className="text-2xl font-extrabold text-white">Product Catalog</h1>
                 <p className="text-xs text-slate-400 mt-1">
-                  Active products recognized by the AI for semantic search & photo matching.
+                  Active products recognized by the AI for semantic search, photo matching & instant COD checkout.
                 </p>
               </div>
+              <button
+                onClick={() => setIsAddProductOpen(true)}
+                className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white font-bold text-xs shadow-lg shadow-indigo-600/25 flex items-center gap-2 self-start sm:self-auto transition"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Add Product</span>
+              </button>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {products.map((p) => (
-                <div
-                  key={p.id}
-                  className="glass rounded-3xl overflow-hidden border border-white/5 flex flex-col justify-between"
+            {/* Product Grid */}
+            {products.length === 0 ? (
+              <div className="glass rounded-3xl p-12 text-center border border-white/5">
+                <ShoppingBag className="w-12 h-12 text-indigo-400/40 mx-auto mb-3" />
+                <h3 className="text-base font-bold text-white mb-1">No Products Found</h3>
+                <p className="text-xs text-slate-400 max-w-sm mx-auto mb-6">
+                  Add items to your catalog so Becho can answer pricing, check stock, and close orders.
+                </p>
+                <button
+                  onClick={() => setIsAddProductOpen(true)}
+                  className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition inline-flex items-center gap-2"
                 >
-                  <img
-                    src={p.images[0] || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=400&fit=crop"}
-                    alt={p.title}
-                    className="w-full h-48 object-cover"
-                  />
-                  <div className="p-5 flex-1 flex flex-col justify-between">
-                    <div>
-                      <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">
-                        {p.category}
-                      </div>
-                      <h4 className="font-bold text-sm text-white mb-2">{p.title}</h4>
-                      <p className="text-xs text-slate-400 line-clamp-2 mb-3">
-                        {p.description}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-                      <div>
-                        <div className="text-base font-extrabold text-emerald-400">
-                          ৳ {p.discountPrice || p.price}
-                        </div>
-                        {p.discountPrice && (
-                          <div className="text-[10px] text-slate-500 line-through">
-                            ৳ {p.price}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[11px] font-semibold text-slate-300">
-                        In Stock: {p.stockQuantity}
+                  <Plus className="w-4 h-4" />
+                  <span>Add First Product</span>
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                {products.map((p) => (
+                  <div
+                    key={p.id}
+                    className="glass rounded-3xl overflow-hidden border border-white/5 flex flex-col justify-between hover:border-indigo-500/30 transition group"
+                  >
+                    <div className="relative overflow-hidden h-48 bg-slate-900">
+                      <img
+                        src={p.images[0] || "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=600&h=400&fit=crop"}
+                        alt={p.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <span className="absolute top-3 right-3 px-2.5 py-1 rounded-full bg-slate-950/80 backdrop-blur-md text-[10px] font-bold text-slate-300 border border-white/10">
+                        Stock: {p.stockQuantity}
                       </span>
                     </div>
+                    <div className="p-5 flex-1 flex flex-col justify-between">
+                      <div>
+                        <div className="text-[10px] font-bold text-indigo-400 uppercase tracking-wider mb-1">
+                          {p.category}
+                        </div>
+                        <h4 className="font-bold text-sm text-white mb-2 line-clamp-1">{p.title}</h4>
+                        <p className="text-xs text-slate-400 line-clamp-2 mb-3">
+                          {p.description}
+                        </p>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800/80 flex items-center justify-between">
+                        <div>
+                          <div className="text-base font-extrabold text-emerald-400">
+                            ৳ {p.discountPrice || p.price}
+                          </div>
+                          {p.discountPrice && (
+                            <div className="text-[10px] text-slate-500 line-through">
+                              ৳ {p.price}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 font-semibold border border-emerald-500/20">
+                            Active in AI
+                          </span>
+                          <button
+                            onClick={() => handleDeleteProduct(p.id, p.title)}
+                            title="Delete Product"
+                            className="p-1 rounded-lg text-slate-500 hover:text-red-400 hover:bg-red-500/10 transition"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
-        {/* TAB 5: Webhook & Settings */}
+        {/* TAB 5: Store Settings & AI Personality */}
         {activeTab === "settings" && (
-          <div className="max-w-4xl mx-auto space-y-6 animate-slide-up">
+          <div className="max-w-4xl mx-auto space-y-8 animate-slide-up pb-12">
             <div>
-              <h1 className="text-2xl font-extrabold text-white">Meta Webhook Configuration</h1>
+              <h1 className="text-2xl font-extrabold text-white">Store Sales Rules & Bot Engine</h1>
               <p className="text-xs text-slate-400 mt-1">
-                Copy these parameters into your Meta Developer App to route incoming Messenger chats.
+                Configure your autonomous sales closer persona, Cash on Delivery options, and Meta webhook routing.
               </p>
             </div>
 
-            <div className="glass p-6 rounded-3xl border border-white/10 space-y-4">
+            {/* Store Persona & Sales Rules Form */}
+            <form onSubmit={handleSaveSettings} className="glass p-6 md:p-8 rounded-3xl border border-white/10 space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+                <div>
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Sliders className="w-4 h-4 text-indigo-400" />
+                    <span>AI Closer Persona & Rules</span>
+                  </h3>
+                  <p className="text-xs text-slate-400">Applied to all customer chats on Facebook Messenger</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-300 font-medium">Bot Status:</span>
+                  <button
+                    type="button"
+                    onClick={() => setBotActive(!botActive)}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 ${
+                      botActive
+                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                        : "bg-red-500/20 text-red-300 border border-red-500/30"
+                    }`}
+                  >
+                    <Power className="w-3.5 h-3.5" />
+                    <span>{botActive ? "Active 24/7" : "Paused"}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Store Industry Persona
+                  </label>
+                  <select
+                    value={storePersona}
+                    onChange={(e) => setStorePersona(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="gadgets">Tech & Electronics (Specs, Fast Charging, Warranties)</option>
+                    <option value="fashion">Boutique & Fashion (Sizes, Fabrics, Matching Gowns)</option>
+                    <option value="cosmetics">Cosmetics & Skincare (Ingredients, Skin Types)</option>
+                    <option value="food">Food & Gourmet (Ingredients, Freshness, Delivery)</option>
+                    <option value="custom">General Commerce</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Max Discount Allowed for Deal Closing (%)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="30"
+                    value={maxDiscount}
+                    onChange={(e) => setMaxDiscount(Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Delivery Fee: Inside City (BDT)
+                  </label>
+                  <input
+                    type="number"
+                    value={insideFee}
+                    onChange={(e) => setInsideFee(Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                    Delivery Fee: Outside City (BDT)
+                  </label>
+                  <input
+                    type="number"
+                    value={outsideFee}
+                    onChange={(e) => setOutsideFee(Number(e.target.value))}
+                    className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Callback URL (Paste into Meta Webhooks)
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                  Custom AI Sales Pitch Instructions
                 </label>
+                <textarea
+                  rows={3}
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="e.g. Always emphasize our 1-year official warranty, speak a friendly mix of Banglish, and suggest Cash on Delivery directly."
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-600"
+                />
+              </div>
+
+              <div className="flex items-center justify-between pt-2">
+                <div className="flex items-center gap-6">
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={codEnabled}
+                      onChange={(e) => setCodEnabled(e.target.checked)}
+                      className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>Cash on Delivery (COD) Enabled</span>
+                  </label>
+
+                  <label className="flex items-center gap-2 text-xs font-medium text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={allowDiscount}
+                      onChange={(e) => setAllowDiscount(e.target.checked)}
+                      className="rounded border-slate-700 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    <span>Allow AI to Offer Closing Discounts</span>
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isSavingSettings}
+                  className="px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md shadow-indigo-600/30 transition disabled:opacity-60"
+                >
+                  {isSavingSettings ? "Saving..." : "Save Store Settings"}
+                </button>
+              </div>
+            </form>
+
+            {/* Meta Webhook Live Parameters */}
+            <div className="glass p-6 md:p-8 rounded-3xl border border-white/10 space-y-5">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                  <span>Live Meta Webhook Routing</span>
+                </h3>
+                <p className="text-xs text-slate-400">
+                  Ensure these exact credentials are saved in your Meta Developer App under <strong>Webhooks &gt; Page</strong>.
+                </p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Callback URL
+                  </label>
+                  <button
+                    onClick={() =>
+                      handleCopy(
+                        `${typeof window !== "undefined" ? window.location.origin : "https://mbot.nanolez.tech"}/api/webhooks/meta`,
+                        "Callback URL"
+                      )
+                    }
+                    className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                  >
+                    {copiedField === "Callback URL" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy URL</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="text"
                   readOnly
-                  value="https://your-domain.vercel.app/api/webhooks/meta"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-indigo-300 font-mono"
+                  value={`${typeof window !== "undefined" ? window.location.origin : "https://mbot.nanolez.tech"}/api/webhooks/meta`}
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-indigo-300 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Verify Token
-                </label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-300">
+                    Verify Token
+                  </label>
+                  <button
+                    onClick={() => handleCopy("becho_secure_verify_token_2026", "Verify Token")}
+                    className="text-[11px] font-semibold text-indigo-400 hover:text-indigo-300 flex items-center gap-1"
+                  >
+                    {copiedField === "Verify Token" ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span className="text-emerald-400">Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy Token</span>
+                      </>
+                    )}
+                  </button>
+                </div>
                 <input
                   type="text"
                   readOnly
                   value="becho_secure_verify_token_2026"
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono"
+                  className="w-full bg-slate-900 border border-slate-700/80 rounded-xl px-4 py-2.5 text-xs text-slate-200 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Required Webhook Subscription Fields
+                <label className="block text-xs font-semibold text-slate-300 mb-2">
+                  Subscribed Webhook Fields
                 </label>
                 <div className="flex flex-wrap gap-2">
                   {["messages", "messaging_postbacks", "message_reads", "message_deliveries"].map((field) => (
@@ -739,6 +1122,159 @@ export default function DashboardPage() {
           </div>
         )}
       </main>
+
+      {/* Add Product Modal */}
+      {isAddProductOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="glass-card rounded-3xl p-6 sm:p-8 max-w-lg w-full border border-white/10 shadow-2xl relative">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-800">
+              <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                <Plus className="w-5 h-5 text-indigo-400" />
+                <span>Add Product to Catalog</span>
+              </h3>
+              <button
+                onClick={() => setIsAddProductOpen(false)}
+                className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleCreateProduct} className="space-y-4 mt-5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Product Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. NanoLez Ultra 2 Smartwatch"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Regular Price (BDT) *
+                  </label>
+                  <input
+                    type="number"
+                    required
+                    placeholder="2500"
+                    value={newPrice}
+                    onChange={(e) => setNewPrice(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Discount Price (BDT)
+                  </label>
+                  <input
+                    type="number"
+                    placeholder="2200"
+                    value={newDiscountPrice}
+                    onChange={(e) => setNewDiscountPrice(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Category
+                  </label>
+                  <select
+                    value={newCategory}
+                    onChange={(e) => setNewCategory(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="Smart Gadgets">Smart Gadgets</option>
+                    <option value="Audio">Audio & Earbuds</option>
+                    <option value="Fashion">Women's Fashion</option>
+                    <option value="Men">Men's Wear</option>
+                    <option value="Footwear">Footwear & Sneakers</option>
+                    <option value="Cosmetics">Cosmetics & Skincare</option>
+                    <option value="General">General Goods</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">
+                    Stock Quantity
+                  </label>
+                  <input
+                    type="number"
+                    value={newStock}
+                    onChange={(e) => setNewStock(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Product Image URL (for visual AI matching)
+                </label>
+                <input
+                  type="url"
+                  placeholder="https://images.unsplash.com/photo-..."
+                  value={newImageUrl}
+                  onChange={(e) => setNewImageUrl(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-600"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">
+                  Description & Features
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Key specs, sizes, colors, material details..."
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl p-3 text-xs text-white focus:outline-none focus:border-indigo-500 placeholder:text-slate-600"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setIsAddProductOpen(false)}
+                  className="px-4 py-2 rounded-xl glass hover:bg-slate-800 text-xs font-semibold text-slate-400 transition"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSavingProduct}
+                  className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs shadow-md transition disabled:opacity-60 flex items-center gap-1.5"
+                >
+                  {isSavingProduct ? "Saving..." : "Add to AI Catalog"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Floating Toast Notification */}
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 flex items-center gap-2 px-4 py-3 rounded-2xl bg-slate-900/95 border border-white/10 shadow-2xl backdrop-blur-xl text-xs font-semibold animate-slide-up">
+          {toast.type === "success" ? (
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          ) : (
+            <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
+          )}
+          <span className={toast.type === "success" ? "text-slate-100" : "text-red-300"}>
+            {toast.message}
+          </span>
+        </div>
+      )}
     </div>
   );
 }

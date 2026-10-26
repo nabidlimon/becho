@@ -388,6 +388,16 @@ export const db = {
     store.products.push(...newProducts);
     saveStore(store);
   },
+  deleteProduct: (id: string): boolean => {
+    const store = ensureStore();
+    const initialLen = store.products.length;
+    store.products = store.products.filter((p) => p.id !== id);
+    if (store.products.length !== initialLen) {
+      saveStore(store);
+      return true;
+    }
+    return false;
+  },
 
   // Customers
   getCustomerByPsid: (pageId: string, psid: string): Customer | undefined =>

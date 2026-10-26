@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "https://mbot.nanolez.tech"),
   title: "BECHO (বেচো) — Autonomous AI Social Sales & Support Closer",
   description:
     "The 24/7 AI Sales Closer for Facebook Pages. Understands customer photos, voice notes, multi-message bursts, and closes Cash-on-Delivery orders in 2 seconds.",
