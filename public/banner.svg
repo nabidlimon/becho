@@ -1,0 +1,182 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="banBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#070B14"/>
+      <stop offset="50%" stop-color="#0E172B"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+
+    <!-- Mesh Glows -->
+    <radialGradient id="glowIndigo" cx="20%" cy="30%" r="50%">
+      <stop offset="0%" stop-color="#6366F1" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#6366F1" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowCyan" cx="80%" cy="70%" r="50%">
+      <stop offset="0%" stop-color="#06B6D4" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#06B6D4" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowPink" cx="50%" cy="50%" r="40%">
+      <stop offset="0%" stop-color="#EC4899" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#EC4899" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Text Gradients -->
+    <linearGradient id="headingGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="50%" stop-color="#F1F5F9"/>
+      <stop offset="100%" stop-color="#93C5FD"/>
+    </linearGradient>
+
+    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#818CF8"/>
+      <stop offset="100%" stop-color="#F43F5E"/>
+    </linearGradient>
+
+    <!-- Card Background & Shadow -->
+    <linearGradient id="cardBg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1E293B" stop-opacity="0.95"/>
+      <stop offset="100%" stop-color="#0F172A" stop-opacity="0.98"/>
+    </linearGradient>
+
+    <filter id="cardShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="20" stdDeviation="25" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+
+    <filter id="softGlowBanner" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Deep Background -->
+  <rect width="1200" height="630" fill="url(#banBg)"/>
+
+  <!-- Background Ambient Glow Orbs -->
+  <circle cx="200" cy="200" r="450" fill="url(#glowIndigo)"/>
+  <circle cx="950" cy="450" r="450" fill="url(#glowCyan)"/>
+  <circle cx="600" cy="300" r="350" fill="url(#glowPink)"/>
+
+  <!-- Subtle Cyber Grid -->
+  <g stroke="#334155" stroke-width="0.75" opacity="0.18">
+    <line x1="0" y1="105" x2="1200" y2="105"/>
+    <line x1="0" y1="210" x2="1200" y2="210"/>
+    <line x1="0" y1="315" x2="1200" y2="315"/>
+    <line x1="0" y1="420" x2="1200" y2="420"/>
+    <line x1="0" y1="525" x2="1200" y2="525"/>
+    <line x1="150" y1="0" x2="150" y2="630"/>
+    <line x1="300" y1="0" x2="300" y2="630"/>
+    <line x1="450" y1="0" x2="450" y2="630"/>
+    <line x1="600" y1="0" x2="600" y2="630"/>
+    <line x1="750" y1="0" x2="750" y2="630"/>
+    <line x1="900" y1="0" x2="900" y2="630"/>
+    <line x1="1050" y1="0" x2="1050" y2="630"/>
+  </g>
+
+  <!-- ================= LEFT COLUMN: HERO CONTENT ================= -->
+  <g transform="translate(80, 80)">
+    <!-- Top Brand & Badge -->
+    <g>
+      <!-- Mini Icon -->
+      <rect x="0" y="0" width="48" height="48" rx="12" fill="#1E1B4B" stroke="#6366F1" stroke-width="2"/>
+      <path d="M 18 16 C 18 10, 30 10, 30 16" fill="none" stroke="#38BDF8" stroke-width="2.5" stroke-linecap="round"/>
+      <path d="M 15 16 L 33 16 L 31 38 L 17 38 Z" fill="url(#brandGrad)"/>
+      <polygon points="26,12 21,24 25,24 22,35 32,22 28,22 30,12" fill="#FDE047"/>
+
+      <!-- Brand Name -->
+      <text x="62" y="34" font-family="system-ui, sans-serif" font-size="28" font-weight="900" letter-spacing="-0.5px" fill="#FFFFFF">BECHO <tspan fill="#A855F7" font-size="20">বেচো</tspan></text>
+
+      <!-- Pill Badge -->
+      <rect x="220" y="7" width="230" height="34" rx="17" fill="#0F172A" stroke="#10B981" stroke-width="1.5"/>
+      <circle cx="236" cy="24" r="4" fill="#10B981"/>
+      <text x="248" y="29" font-family="system-ui, sans-serif" font-size="12" font-weight="700" letter-spacing="1.5px" fill="#34D399">2-SEC SOCIAL CLOSER</text>
+    </g>
+
+    <!-- Main Headline -->
+    <text x="0" y="125" font-family="system-ui, sans-serif" font-size="46" font-weight="900" letter-spacing="-1.5px" line-height="1.2" fill="url(#headingGrad)">
+      <tspan x="0" dy="0">Turn Facebook DMs Into</tspan>
+      <tspan x="0" dy="58" fill="url(#brandGrad)">Cash-On-Delivery Orders</tspan>
+      <tspan x="0" dy="58">Autonomously 24/7.</tspan>
+    </text>
+
+    <!-- Subheadline -->
+    <text x="0" y="320" font-family="system-ui, sans-serif" font-size="18" font-weight="400" fill="#94A3B8">
+      <tspan x="0" dy="0">The agentic sales closer that understands customer photos, speaks</tspan>
+      <tspan x="0" dy="28">with marketing psychology &amp; humor, and books COD orders in seconds.</tspan>
+    </text>
+
+    <!-- Feature Tags -->
+    <g transform="translate(0, 390)">
+      <!-- Tag 1 -->
+      <rect x="0" y="0" width="160" height="38" rx="10" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <text x="15" y="24" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#E2E8F0">📸 Multimodal Vision</text>
+
+      <!-- Tag 2 -->
+      <rect x="175" y="0" width="180" height="38" rx="10" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <text x="190" y="24" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#E2E8F0">🧠 Sales Psychology</text>
+
+      <!-- Tag 3 -->
+      <rect x="370" y="0" width="155" height="38" rx="10" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <text x="385" y="24" font-family="system-ui, sans-serif" font-size="13" font-weight="600" fill="#E2E8F0">📦 Auto COD Booking</text>
+    </g>
+  </g>
+
+  <!-- ================= RIGHT COLUMN: INTERACTIVE SIMULATION MOCKUP ================= -->
+  <g transform="translate(680, 60)" filter="url(#cardShadow)">
+    <!-- Messenger Frame -->
+    <rect x="0" y="0" width="440" height="510" rx="24" ry="24" fill="url(#cardBg)" stroke="#334155" stroke-width="1.5"/>
+
+    <!-- Messenger Header -->
+    <rect x="0" y="0" width="440" height="64" rx="24" ry="24" fill="#0F172A" opacity="0.9"/>
+    <circle cx="36" cy="32" r="16" fill="#6366F1"/>
+    <text x="30" y="38" font-family="system-ui, sans-serif" font-size="16" fill="#FFFFFF">⚡</text>
+    <text x="64" y="28" font-family="system-ui, sans-serif" font-size="15" font-weight="700" fill="#FFFFFF">BECHO AI Sales Bot</text>
+    <circle cx="68" cy="44" r="4" fill="#10B981"/>
+    <text x="78" y="47" font-family="system-ui, sans-serif" font-size="11" font-weight="600" fill="#10B981">Always Active • 1.8s avg reply</text>
+
+    <!-- Chat Message 1 (Customer photo + inquiry) -->
+    <g transform="translate(180, 84)">
+      <rect x="0" y="0" width="235" height="42" rx="16" ry="16" fill="#2563EB"/>
+      <text x="16" y="26" font-family="system-ui, sans-serif" font-size="13" fill="#FFFFFF">Is this available in size M? 👗</text>
+    </g>
+
+    <!-- Chat Message 2 (AI Reply with Psychology & Humour) -->
+    <g transform="translate(24, 140)">
+      <rect x="0" y="0" width="370" height="110" rx="16" ry="16" fill="#1E293B" stroke="#334155" stroke-width="1"/>
+      <text x="16" y="26" font-family="system-ui, sans-serif" font-size="12.5" font-weight="600" fill="#F8FAFC">
+        <tspan x="16" dy="0">Ooh, impeccable taste! 😍 That's our top seller.</tspan>
+        <tspan x="16" dy="22" fill="#FDE047">• Price: BDT 1,850 (Only 2 left in Size M 🔥)</tspan>
+        <tspan x="16" dy="22">• Zero-risk Cash on Delivery! Pay at doorstep.</tspan>
+        <tspan x="16" dy="24" fill="#38BDF8">Drop your Address &amp; Phone to lock it in! 📦</tspan>
+      </text>
+    </g>
+
+    <!-- Chat Message 3 (Customer Quick Details) -->
+    <g transform="translate(140, 266)">
+      <rect x="0" y="0" width="275" height="52" rx="16" ry="16" fill="#2563EB"/>
+      <text x="14" y="22" font-family="system-ui, sans-serif" font-size="12.5" fill="#FFFFFF">
+        <tspan x="14" dy="0">Yes please! 01712345678</tspan>
+        <tspan x="14" dy="18">House 12, Road 27, Dhanmondi</tspan>
+      </text>
+    </g>
+
+    <!-- Chat Message 4 (Instant Order Confirmed Tag & Badge) -->
+    <g transform="translate(24, 332)">
+      <rect x="0" y="0" width="370" height="96" rx="16" ry="16" fill="#064E3B" stroke="#10B981" stroke-width="1.5" opacity="0.95"/>
+      <text x="16" y="26" font-family="system-ui, sans-serif" font-size="13" font-weight="700" fill="#34D399">🎉 Order #BC-9281 Confirmed (COD)!</text>
+      <text x="16" y="48" font-family="system-ui, sans-serif" font-size="12" fill="#E2E8F0">
+        <tspan x="16" dy="0">• Item: Linen Summer Co-ord (Size M)</tspan>
+        <tspan x="16" dy="18">• Total: BDT 1,920 (COD) • Delivery: 24-48 hrs</tspan>
+      </text>
+      <circle cx="340" cy="40" r="14" fill="#10B981" opacity="0.2"/>
+      <text x="333" y="46" font-family="system-ui, sans-serif" font-size="18" fill="#10B981">✓</text>
+    </g>
+
+    <!-- Floating Live Stats Pill (Bottom) -->
+    <g transform="translate(60, 448)">
+      <rect x="0" y="0" width="300" height="38" rx="19" fill="#0F172A" stroke="#818CF8" stroke-width="1.5"/>
+      <text x="24" y="24" font-family="system-ui, sans-serif" font-size="12" font-weight="700" fill="#F8FAFC">⚡ 1.8s Response  •  📈 94.2% Close Rate</text>
+    </g>
+  </g>
+</svg>

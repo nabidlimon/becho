@@ -1,0 +1,127 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <!-- Background Gradients -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080D1A"/>
+      <stop offset="45%" stop-color="#0E162B"/>
+      <stop offset="100%" stop-color="#050811"/>
+    </linearGradient>
+
+    <!-- Outer Glow Rim -->
+    <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="30%" stop-color="#6366F1"/>
+      <stop offset="70%" stop-color="#A855F7"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+
+    <!-- Brand Vibrant Gradients -->
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#C026D3"/>
+    </linearGradient>
+
+    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="50%" stop-color="#3B82F6"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+
+    <linearGradient id="boltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+
+    <linearGradient id="sheenGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Glow & Shadow Filters -->
+    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="35" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="dropShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="24" stdDeviation="32" flood-color="#4F46E5" flood-opacity="0.45"/>
+    </filter>
+
+    <filter id="boltGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="16" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- Base Icon Squircle Background -->
+  <rect x="32" y="32" width="960" height="960" rx="224" ry="224" fill="url(#bgGrad)"/>
+  
+  <!-- Outer Neon Border Rim -->
+  <rect x="32" y="32" width="960" height="960" rx="224" ry="224" fill="none" stroke="url(#rimGrad)" stroke-width="6" opacity="0.85"/>
+
+  <!-- Inner Ambient Atmospheric Glow -->
+  <circle cx="512" cy="512" r="340" fill="#6366F1" opacity="0.18" filter="url(#softGlow)"/>
+  <circle cx="680" cy="380" r="220" fill="#EC4899" opacity="0.14" filter="url(#softGlow)"/>
+  <circle cx="340" cy="680" r="240" fill="#06B6D4" opacity="0.15" filter="url(#softGlow)"/>
+
+  <!-- Shopping Bag Handle Arch (Stylized & Sleek) -->
+  <path d="M 390 320 C 390 220, 634 220, 634 320" 
+        fill="none" 
+        stroke="url(#accentGrad)" 
+        stroke-width="48" 
+        stroke-linecap="round" 
+        opacity="0.9"
+        filter="url(#dropShadow)"/>
+
+  <!-- Core Mark: Monogram "B" fused with Modern Shopping Bag -->
+  <g filter="url(#dropShadow)">
+    <!-- Main Bag Body / Left Spine of "B" -->
+    <path d="M 330 320 L 670 320 C 700 320, 725 345, 720 375 L 680 730 C 675 765, 645 790, 610 790 L 370 790 C 335 790, 305 765, 300 730 L 280 375 C 275 345, 300 320, 330 320 Z" 
+          fill="url(#primaryGrad)"/>
+
+    <!-- Subtle Glass Sheen on Bag Face -->
+    <path d="M 330 320 L 670 320 C 700 320, 725 345, 720 375 L 695 560 C 580 530, 420 540, 290 580 L 280 375 C 275 345, 300 320, 330 320 Z" 
+          fill="url(#sheenGrad)"/>
+
+    <!-- Geometric Sculpting of the "B" Curves -->
+    <!-- Top Bowl cut / highlight -->
+    <path d="M 430 420 C 530 410, 610 440, 610 510 C 610 565, 545 590, 450 590 L 415 590 L 415 420 Z" 
+          fill="#0B1120" 
+          opacity="0.88"/>
+    
+    <!-- Bottom Bowl cut / highlight -->
+    <path d="M 430 580 C 545 580, 630 610, 630 685 C 630 755, 540 770, 430 770 L 415 770 L 415 580 Z" 
+          fill="#0B1120" 
+          opacity="0.88"/>
+
+    <!-- Inner "B" Glow Pods -->
+    <circle cx="505" cy="505" r="28" fill="url(#accentGrad)" opacity="0.9"/>
+    <circle cx="515" cy="675" r="32" fill="url(#primaryGrad)" opacity="0.9"/>
+  </g>
+
+  <!-- Speed Lightning Bolt (2-Second Autonomous Close Motif) -->
+  <polygon points="560,250 430,490 530,490 440,730 670,450 540,450 630,250" 
+           fill="url(#boltGrad)" 
+           filter="url(#boltGlow)"/>
+
+  <!-- High-Tech AI Sparkle / Star Accents -->
+  <!-- Sparkle 1 (Top Right) -->
+  <g transform="translate(770, 210) scale(1.1)">
+    <path d="M 0,-45 Q 0,0 45,0 Q 0,0 0,45 Q 0,0 -45,0 Q 0,0 0,-45 Z" fill="#38BDF8" filter="url(#softGlow)"/>
+    <circle cx="0" cy="0" r="10" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Sparkle 2 (Bottom Left) -->
+  <g transform="translate(230, 810) scale(0.75)">
+    <path d="M 0,-40 Q 0,0 40,0 Q 0,0 0,40 Q 0,0 -40,0 Q 0,0 0,-40 Z" fill="#EC4899" filter="url(#softGlow)"/>
+    <circle cx="0" cy="0" r="8" fill="#FFFFFF"/>
+  </g>
+
+  <!-- Sparkle 3 (Center Top Mini) -->
+  <g transform="translate(690, 690) scale(0.6)">
+    <path d="M 0,-30 Q 0,0 30,0 Q 0,0 0,30 Q 0,0 -30,0 Q 0,0 0,-30 Z" fill="#FDE047" opacity="0.9"/>
+    <circle cx="0" cy="0" r="6" fill="#FFFFFF"/>
+  </g>
+</svg>

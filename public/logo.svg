@@ -1,0 +1,126 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 220" width="880" height="220">
+  <defs>
+    <!-- Brand Gradients -->
+    <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#080D1A"/>
+      <stop offset="100%" stop-color="#030712"/>
+    </linearGradient>
+
+    <linearGradient id="logoRimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#EC4899"/>
+    </linearGradient>
+
+    <linearGradient id="logoPrimaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#4F46E5"/>
+      <stop offset="50%" stop-color="#7C3AED"/>
+      <stop offset="100%" stop-color="#C026D3"/>
+    </linearGradient>
+
+    <linearGradient id="logoAccentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#06B6D4"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+
+    <linearGradient id="logoBoltGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FDE047"/>
+      <stop offset="50%" stop-color="#F59E0B"/>
+      <stop offset="100%" stop-color="#EF4444"/>
+    </linearGradient>
+
+    <linearGradient id="textGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="70%" stop-color="#F8FAFC"/>
+      <stop offset="100%" stop-color="#C7D2FE"/>
+    </linearGradient>
+
+    <linearGradient id="badgeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#1E1B4B" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#064E3B" stop-opacity="0.7"/>
+    </linearGradient>
+
+    <!-- Filters -->
+    <filter id="logoGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <filter id="boltGlowLogo" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+  </defs>
+
+  <!-- ================= LOGO ICON MARK (Left, 170x170) ================= -->
+  <g transform="translate(25, 25)">
+    <!-- Squircle Base -->
+    <rect x="0" y="0" width="170" height="170" rx="42" ry="42" fill="url(#logoBgGrad)"/>
+    <rect x="0" y="0" width="170" height="170" rx="42" ry="42" fill="none" stroke="url(#logoRimGrad)" stroke-width="2.5" opacity="0.9"/>
+
+    <!-- Subtle Internal Radial Glow -->
+    <circle cx="85" cy="85" r="55" fill="#6366F1" opacity="0.25" filter="url(#logoGlow)"/>
+
+    <!-- Bag Handle -->
+    <path d="M 64 54 C 64 36, 106 36, 106 54" 
+          fill="none" 
+          stroke="url(#logoAccentGrad)" 
+          stroke-width="8.5" 
+          stroke-linecap="round"/>
+
+    <!-- Bag / Stylized "B" Body -->
+    <path d="M 52 54 L 118 54 C 124 54, 128 58, 127 64 L 120 128 C 119 134, 114 138, 108 138 L 62 138 C 56 138, 51 134, 50 128 L 43 64 C 42 58, 46 54, 52 54 Z" 
+          fill="url(#logoPrimaryGrad)"/>
+
+    <!-- "B" Cutouts -->
+    <rect x="71" y="72" width="28" height="18" rx="8" fill="#090E1A"/>
+    <rect x="71" y="100" width="31" height="21" rx="9" fill="#090E1A"/>
+
+    <!-- Speed Bolt -->
+    <polygon points="95,40 73,83 90,83 75,128 116,77 94,77 108,40" 
+             fill="url(#logoBoltGrad)" 
+             filter="url(#boltGlowLogo)"/>
+
+    <!-- Sparkle Stars -->
+    <path d="M 136 26 Q 136 34 144 34 Q 136 34 136 42 Q 136 34 128 34 Q 136 34 136 26 Z" fill="#38BDF8"/>
+    <circle cx="136" cy="34" r="2" fill="#FFFFFF"/>
+  </g>
+
+  <!-- ================= TYPOGRAPHY & TAGLINE (Right) ================= -->
+  <!-- Brand Name: BECHO -->
+  <text x="235" y="125" 
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif" 
+        font-size="94" 
+        font-weight="900" 
+        letter-spacing="-2px" 
+        fill="url(#textGrad)">BECHO</text>
+
+  <!-- Bengali Calligraphic Sub-Mark (বেচো) -->
+  <text x="590" y="120" 
+        font-family="system-ui, -apple-system, 'Segoe UI', sans-serif" 
+        font-size="34" 
+        font-weight="700" 
+        fill="#A855F7" 
+        opacity="0.85">বেচো</text>
+
+  <!-- Tagline: Autonomous AI Social Sales Closer -->
+  <text x="238" y="166" 
+        font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" 
+        font-size="16" 
+        font-weight="700" 
+        letter-spacing="5px" 
+        fill="#94A3B8">AUTONOMOUS SOCIAL SALES CLOSER</text>
+
+  <!-- Status / Feature Capsule Badge -->
+  <g transform="translate(685, 92)">
+    <rect x="0" y="0" width="168" height="34" rx="17" fill="url(#badgeGrad)" stroke="#10B981" stroke-width="1.5" stroke-opacity="0.6"/>
+    <circle cx="16" cy="17" r="4.5" fill="#10B981"/>
+    <circle cx="16" cy="17" r="8" fill="#10B981" opacity="0.3"/>
+    <text x="29" y="22" 
+          font-family="system-ui, -apple-system, sans-serif" 
+          font-size="11.5" 
+          font-weight="700" 
+          letter-spacing="1px" 
+          fill="#34D399">2-SEC COD CLOSER</text>
+  </g>
+</svg>
