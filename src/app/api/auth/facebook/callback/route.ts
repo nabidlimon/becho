@@ -28,9 +28,17 @@ export async function GET(req: NextRequest) {
   const forwardedProto = req.headers.get("x-forwarded-proto");
   const host = forwardedHost || req.headers.get("host") || req.nextUrl.host;
   const proto = forwardedProto || (host.includes("localhost") ? "http" : "https");
-  const appUrl = (host && !host.includes("undefined"))
-    ? `${proto}://${host}`
-    : config.appUrl.replace(/\/$/, "");
+
+  let appUrl: string;
+  if (host.includes("localhost") || host.includes("127.0.0.1")) {
+    appUrl = `http://${host}`;
+  } else if (host.includes(".vercel.app")) {
+    appUrl = "https://mbot.nanolez.tech";
+  } else if (host && !host.includes("undefined")) {
+    appUrl = `${proto}://${host}`;
+  } else {
+    appUrl = config.appUrl.replace(/\/$/, "");
+  }
 
   const redirectUri = `${appUrl}/api/auth/facebook/callback`;
 
