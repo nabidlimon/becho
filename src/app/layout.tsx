@@ -24,6 +24,11 @@ export const metadata: Metadata = {
       "Turn Facebook DMs into Cash-on-Delivery orders in 2 seconds with multimodal AI vision and marketing psychology.",
     images: [{ url: "/banner.svg", width: 1200, height: 630, alt: "BECHO Banner" }],
   },
+  verification: {
+    other: {
+      "facebook-domain-verification": ["4kfhx3l4d4phniop2vdnqbma6ypady"],
+    },
+  },
 };
 
 export default function RootLayout({
@@ -33,6 +38,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="dark" suppressHydrationWarning>
+      <head>
+        <meta name="facebook-domain-verification" content="4kfhx3l4d4phniop2vdnqbma6ypady" />
+      </head>
       <body
         suppressHydrationWarning
         className="min-h-screen bg-[#070b14] text-slate-100 antialiased selection:bg-indigo-500 selection:text-white"
