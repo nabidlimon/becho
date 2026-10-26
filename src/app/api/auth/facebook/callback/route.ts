@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { config } from "@/lib/config";
 import { db } from "@/lib/db";
 import { encryptToken } from "@/lib/security";
@@ -33,8 +34,41 @@ export async function GET(req: NextRequest) {
 
   const redirectUri = `${appUrl}/api/auth/facebook/callback`;
 
-  // Verify CSRF state token
-  if (!incomingState || !savedState || incomingState !== savedState) {
+  // Verify CSRF state token: check cookie OR cryptographically verify signed state token
+  let effectiveRedirectUri = redirectUri;
+  let isStateValid = false;
+
+  if (incomingState) {
+    if (savedState && incomingState === savedState) {
+      isStateValid = true;
+    }
+
+    try {
+      const [payloadB64, sig] = incomingState.split(".");
+      if (payloadB64 && sig) {
+        const expectedSig = crypto
+          .createHmac("sha256", config.meta.appSecret || "becho_fallback_secret")
+          .update(payloadB64)
+          .digest("hex")
+          .substring(0, 16);
+
+        if (sig === expectedSig) {
+          const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString("utf8"));
+          // State valid for 20 minutes
+          if (Date.now() - payload.t < 20 * 60 * 1000) {
+            isStateValid = true;
+            if (payload.r) {
+              effectiveRedirectUri = payload.r;
+            }
+          }
+        }
+      }
+    } catch {
+      // Fallback to cookie check
+    }
+  }
+
+  if (!isStateValid) {
     return renderHtmlResponse({
       success: false,
       error: "Security verification failed: OAuth state mismatch or expired. Please try connecting again.",
@@ -53,12 +87,12 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // 1. Exchange authorization code for short-lived User Access Token
+    // 1. Exchange authorization code for short-lived User Access Token using exact redirectUri
     const tokenUrl = `${config.meta.graphBaseUrl}/${config.meta.apiVersion}/oauth/access_token?` +
       new URLSearchParams({
         client_id: config.meta.appId,
         client_secret: config.meta.appSecret,
-        redirect_uri: redirectUri,
+        redirect_uri: effectiveRedirectUri,
         code,
       });
 
@@ -260,6 +294,11 @@ function renderHtmlResponse(
         ? `Found ${data.pages.length} Facebook Page${data.pages.length === 1 ? "" : "s"}. Returning to Becho...`
         : data.error || "An error occurred while connecting."
     }</p>
+    ${
+      !data.success
+        ? `<a href="/login" style="display:inline-block; margin-top:8px; padding:10px 20px; background:#4f46e5; color:#fff; text-decoration:none; border-radius:8px; font-weight:600; font-size:13px;">Return to Login</a>`
+        : ""
+    }
   </div>
   <script>
     (function() {
@@ -269,11 +308,11 @@ function renderHtmlResponse(
         window.opener.postMessage({ type: 'META_OAUTH_RESPONSE', ...result }, targetOrigin === '*' ? window.location.origin : targetOrigin);
         setTimeout(function() {
           window.close();
-        }, 1000);
+        }, 1200);
       } else {
         setTimeout(function() {
-          window.location.href = '/dashboard';
-        }, 1500);
+          window.location.href = result.success ? '/dashboard' : '/login?error=' + encodeURIComponent(result.error || 'Facebook connection failed');
+        }, result.success ? 1500 : 4000);
       }
     })();
   </script>

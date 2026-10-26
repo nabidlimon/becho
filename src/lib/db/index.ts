@@ -22,7 +22,7 @@ const initialSeedData: DataStore = {
       id: "user-admin-01",
       name: "NanoLez Admin",
       email: "admin@nanolez.tech",
-      passwordHash: "$2a$10$wT02U9K4L9B8h4x5S9p1Ou7K8aP.P2h.H2wK7xK.E1a2b3c4d5e6f", // hashed 'admin123'
+      passwordHash: "$2b$10$sSsI52OPePIq7LVMD.3ES.Vv.68wVA9XkkxMIxKtkGDWoDe0ryHay", // bcrypt hash for 'admin123'
       avatarUrl: "https://mbot.nanolez.tech/logo.svg",
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),

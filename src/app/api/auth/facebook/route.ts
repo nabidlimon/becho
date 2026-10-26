@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import crypto from "crypto";
 import { config } from "@/lib/config";
 
 export const dynamic = "force-dynamic";
@@ -47,26 +48,44 @@ export async function GET(req: NextRequest) {
     });
   }
 
-  // Meta permissions needed to manage Messenger chat & webhook subscriptions
+  // Meta permissions needed: user login + Messenger chat & webhook subscriptions
   const scopes = [
+    "public_profile",
+    "email",
     "pages_show_list",
     "pages_messaging",
     "pages_manage_metadata",
   ].join(",");
 
-  const state = Math.random().toString(36).substring(2, 15) + "_" + Date.now();
+  // Construct tamper-proof signed state token containing timestamp, redirectUri, and random nonce
+  const statePayload = Buffer.from(
+    JSON.stringify({
+      t: Date.now(),
+      r: redirectUri,
+      n: Math.random().toString(36).substring(2, 10),
+    })
+  ).toString("base64url");
+
+  const stateSignature = crypto
+    .createHmac("sha256", config.meta.appSecret || "becho_fallback_secret")
+    .update(statePayload)
+    .digest("hex")
+    .substring(0, 16);
+
+  const state = `${statePayload}.${stateSignature}`;
 
   const authUrl = `https://www.facebook.com/${config.meta.apiVersion}/dialog/oauth?client_id=${appId}&redirect_uri=${encodeURIComponent(
     redirectUri
   )}&scope=${encodeURIComponent(scopes)}&response_type=code&state=${state}`;
 
+  const wantsRedirect = searchParams.get("redirect") === "true";
   const wantsJson =
     searchParams.get("format") === "json" ||
     req.headers.get("accept") === "application/json" ||
-    searchParams.get("redirect") === "false";
+    (!wantsRedirect && searchParams.get("redirect") !== "true");
 
-  // If JSON is explicitly requested (e.g., from onboarding popup helper), return JSON
-  const response = wantsJson
+  // If JSON is requested (e.g., from onboarding popup helper), return JSON with authUrl
+  const response = wantsJson && !wantsRedirect
     ? NextResponse.json({
         configured: true,
         authUrl,
@@ -74,12 +93,14 @@ export async function GET(req: NextRequest) {
       })
     : NextResponse.redirect(authUrl);
 
+  const isLocal = host.includes("localhost") || host.includes("127.0.0.1");
+
   response.cookies.set("becho_oauth_state", state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: process.env.NODE_ENV === "production" && !isLocal,
     sameSite: "lax",
     path: "/",
-    maxAge: 600, // 10 minutes
+    maxAge: 900, // 15 minutes
   });
 
   return response;
