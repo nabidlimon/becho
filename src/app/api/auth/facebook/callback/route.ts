@@ -16,7 +16,15 @@ export async function GET(req: NextRequest) {
   const error = searchParams.get("error");
   const errorDescription = searchParams.get("error_description");
 
-  const appUrl = config.appUrl.replace(/\/$/, "");
+  // Dynamically resolve origin from request headers to prevent domain mismatches
+  const forwardedHost = req.headers.get("x-forwarded-host");
+  const forwardedProto = req.headers.get("x-forwarded-proto");
+  const host = forwardedHost || req.headers.get("host") || req.nextUrl.host;
+  const proto = forwardedProto || (host.includes("localhost") ? "http" : "https");
+  const appUrl = (host && !host.includes("undefined"))
+    ? `${proto}://${host}`
+    : config.appUrl.replace(/\/$/, "");
+
   const redirectUri = `${appUrl}/api/auth/facebook/callback`;
 
   // Handle OAuth error/cancellation from Facebook
