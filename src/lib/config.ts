@@ -5,14 +5,18 @@ import path from "path";
  * In-memory cache for .env.local variables to avoid repeated synchronous disk reads.
  */
 let cachedEnvLocal: Record<string, string> | null = null;
+let lastEnvMtime = 0;
 
 function loadEnvLocalCache(): Record<string, string> {
-  if (cachedEnvLocal !== null) return cachedEnvLocal;
-  cachedEnvLocal = {};
-
   try {
     const envPath = path.join(process.cwd(), ".env.local");
     if (fs.existsSync(envPath)) {
+      const stats = fs.statSync(envPath);
+      if (cachedEnvLocal !== null && stats.mtimeMs === lastEnvMtime) {
+        return cachedEnvLocal;
+      }
+      lastEnvMtime = stats.mtimeMs;
+      cachedEnvLocal = {};
       const content = fs.readFileSync(envPath, "utf8");
       const lines = content.split(/\r?\n/);
       for (const line of lines) {
@@ -27,9 +31,7 @@ function loadEnvLocalCache(): Record<string, string> {
               v = v.slice(1, -1);
             }
             cachedEnvLocal[k] = v;
-            if (!process.env[k]) {
-              process.env[k] = v;
-            }
+            process.env[k] = v;
           }
         }
       }
@@ -38,22 +40,22 @@ function loadEnvLocalCache(): Record<string, string> {
     // Ignore file read error if running in browser or edge
   }
 
-  return cachedEnvLocal;
+  return cachedEnvLocal || {};
 }
 
 /**
  * Resolves environment variables efficiently:
- * 1. Checks process.env first (O(1) in-memory)
- * 2. Falls back to cached .env.local file values
+ * 1. Checks freshly cached .env.local (auto-reloaded on file modification)
+ * 2. Falls back to process.env (Vercel serverless / container env)
  */
 function getEnvVar(key: string, defaultValue = ""): string {
-  if (process.env[key]) {
-    return process.env[key]!;
-  }
-
   const fileEnv = loadEnvLocalCache();
   if (fileEnv[key]) {
     return fileEnv[key];
+  }
+
+  if (process.env[key]) {
+    return process.env[key]!;
   }
 
   return defaultValue;
