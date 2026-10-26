@@ -60,13 +60,20 @@ export async function GET(req: NextRequest) {
     redirectUri
   )}&scope=${encodeURIComponent(scopes)}&response_type=code&state=${state}`;
 
-  if (redirectParam) {
-    return NextResponse.redirect(authUrl);
+  const wantsJson =
+    searchParams.get("format") === "json" ||
+    req.headers.get("accept") === "application/json" ||
+    searchParams.get("redirect") === "false";
+
+  // If JSON is explicitly requested (e.g., from onboarding popup helper), return JSON
+  if (wantsJson) {
+    return NextResponse.json({
+      configured: true,
+      authUrl,
+      redirectUri,
+    });
   }
 
-  return NextResponse.json({
-    configured: true,
-    authUrl,
-    redirectUri,
-  });
+  // By default for direct browser visits and login buttons, immediately redirect to Facebook Login
+  return NextResponse.redirect(authUrl);
 }

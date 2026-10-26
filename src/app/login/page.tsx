@@ -39,7 +39,7 @@ export default function LoginPage() {
   };
 
   const handleFacebookLogin = () => {
-    window.location.href = "/api/auth/facebook";
+    window.location.href = "/api/auth/facebook?redirect=true";
   };
 
   return (

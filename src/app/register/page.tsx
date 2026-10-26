@@ -46,7 +46,7 @@ export default function RegisterPage() {
   };
 
   const handleFacebookConnect = () => {
-    window.location.href = "/api/auth/facebook";
+    window.location.href = "/api/auth/facebook?redirect=true";
   };
 
   return (

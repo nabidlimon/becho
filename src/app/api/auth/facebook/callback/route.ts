@@ -258,7 +258,7 @@ function renderHtmlResponse(
         }, 1000);
       } else {
         setTimeout(function() {
-          window.location.href = '/onboarding';
+          window.location.href = '/dashboard';
         }, 1500);
       }
     })();
